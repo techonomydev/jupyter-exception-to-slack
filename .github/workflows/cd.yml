@@ -34,20 +34,11 @@ jobs:
     - name: Build code
       run: |
         poetry build
-    - name: Upload wheels to release
+    - name: Upload Python resources to release
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file:  dist/*.whl
+        file: dist/*
         tag: ${{ github.ref }}
         file_glob: true
-        prerelease: true
-    - name: Upload wheels to release
-      uses: svenstaro/upload-release-action@v2
-      with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: dist/*.tar.gz
-        tag: ${{ github.ref }}
-        file_glob: true
-        prerelease: true
 
