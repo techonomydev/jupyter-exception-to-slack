@@ -18,6 +18,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - id: get_version
+      name: get version from tag
+      uses: battila7/get-version-action@v2
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v1
       with:
@@ -33,6 +36,7 @@ jobs:
         inv lint
     - name: Build code
       run: |
+        poetry version ${{ steps.get_version.outputs.version-without-v }}
         poetry build
     - name: Upload Python resources to release
       uses: svenstaro/upload-release-action@v2
