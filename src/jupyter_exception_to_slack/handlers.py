@@ -1,22 +1,32 @@
 import re
-from typing import List, Optional, Type
+import sys
+from typing import Optional
 
 import requests
 from IPython import get_ipython
-from IPython.core.interactiveshell import InteractiveShell, traceback
+from IPython.core.interactiveshell import ExecutionResult, traceback
 from IPython.core.ultratb import AutoFormattedTB
-from IPython.display import display
 
 
 def register_to_slack_exception_handler(
     slack_webhook_url: str,
     slack_message_title: str,
-    notebook_url: Optional[str],
+    notebook_url: Optional[str] = None,
 ) -> None:
-    get_ipython().set_custom_exc(
-        (BaseException,),
-        ToSlackExceptionHandler(slack_webhook_url, slack_message_title, notebook_url),
+    exception_handler = ToSlackExceptionHandler(
+        slack_webhook_url=slack_webhook_url,
+        slack_message_title=slack_message_title,
+        notebook_url=notebook_url,
     )
+
+    def handle_post_run_cell(result: ExecutionResult) -> None:
+        error_in_exec = result.error_in_exec
+
+        if error_in_exec:
+            etype, value, tb = sys.exc_info()
+            exception_handler(exception=error_in_exec, tb=tb)
+
+    get_ipython().events.register("post_run_cell", handle_post_run_cell)
 
 
 class ToSlackExceptionHandler:
@@ -33,18 +43,15 @@ class ToSlackExceptionHandler:
 
     def __call__(
         self,
-        shell: InteractiveShell,
-        etype: Type[BaseException],
-        value: BaseException,
+        exception: BaseException,
         tb: traceback,
-        tb_offset: Optional[int] = None,
-    ) -> Optional[List[str]]:
-        notebook_formatter = AutoFormattedTB(tb_offset=tb_offset)
+    ) -> None:
         slack_formatter = AutoFormattedTB(
-            mode="Verbose", color_scheme="NoColor", tb_offset=tb_offset
+            mode="Verbose",
+            color_scheme="NoColor",
         )
 
-        stb = slack_formatter.structured_traceback(etype, value, tb)
+        stb = slack_formatter.structured_traceback(type(exception), exception, tb)
 
         text = slack_formatter.stb2text(stb)
 
@@ -93,7 +100,3 @@ class ToSlackExceptionHandler:
             },
         )
         result.raise_for_status()
-
-        display(notebook_formatter(etype, value, tb))
-
-        return notebook_formatter.structured_traceback(etype, value, tb)
