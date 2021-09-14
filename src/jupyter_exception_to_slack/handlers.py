@@ -4,7 +4,6 @@ from typing import Optional
 import requests
 from IPython import get_ipython
 from IPython.core.interactiveshell import ExecutionResult, traceback
-from IPython.core.ultratb import AutoFormattedTB
 
 
 def register_to_slack_exception_handler(
@@ -44,14 +43,7 @@ class ToSlackExceptionHandler:
         exception: BaseException,
         tb: traceback,
     ) -> None:
-        slack_formatter = AutoFormattedTB(
-            mode="Verbose",
-            color_scheme="NoColor",
-        )
-
-        stb = slack_formatter.structured_traceback(type(exception), exception, tb)
-
-        text = slack_formatter.stb2text(stb)
+        text = "".join(traceback.format_exception(type(exception), exception, tb))
 
         result = requests.post(
             url=self.slack_webhook_url,
@@ -65,6 +57,13 @@ class ToSlackExceptionHandler:
                                 "text": {
                                     "type": "plain_text",
                                     "text": self.slack_message_title,
+                                },
+                            },
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": str(exception),
                                 },
                             },
                             {
@@ -97,4 +96,5 @@ class ToSlackExceptionHandler:
                 ]
             },
         )
+
         result.raise_for_status()
