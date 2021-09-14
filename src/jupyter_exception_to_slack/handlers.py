@@ -1,5 +1,4 @@
 import re
-import sys
 from typing import Optional
 
 import requests
@@ -23,8 +22,7 @@ def register_to_slack_exception_handler(
         error_in_exec = result.error_in_exec
 
         if error_in_exec:
-            etype, value, tb = sys.exc_info()
-            exception_handler(exception=error_in_exec, tb=tb)
+            exception_handler(exception=error_in_exec, tb=error_in_exec.__traceback__)
 
     get_ipython().events.register("post_run_cell", handle_post_run_cell)
 
